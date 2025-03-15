@@ -3,26 +3,22 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QTableWid
                                QDialog, QFormLayout, QDateEdit, QComboBox, QMessageBox, QDoubleSpinBox,
                                QSizePolicy, QHeaderView)
 from PySide6.QtCore import QDate, Qt, QSize, Signal
-from PySide6.QtGui import QIcon, QPixmap, QColor
+from PySide6.QtGui import QIcon
 from db import get_session, Animal, Species, Enclosure, Employee, HealthRecord, AnimalFeed, Feed, Offspring
-from datetime import datetime
 
 # Кастомный класс для кнопки с иконкой "+"
 class CustomButtonWidget(QWidget):
     clicked = Signal(str)
-    plus_clicked = Signal(str)  # Сигнал для клика по кнопке "+"
+    plus_clicked = Signal(str)
 
     def __init__(self, text, plus_icon_path, plus_icon_size, parent=None):
         super().__init__(parent)
-        self.setFixedSize(298, 48)  # Фиксированный размер всего виджета
+        self.setFixedSize(298, 48)
         self.layout = QHBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)  # Убираем все отступы
-        self.layout.setSpacing(0)  # Убираем промежуток
+        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.layout.setSpacing(0)
 
-        # Основная кнопка с текстом (без левой иконки)
         self.main_button = QPushButton(text)
-
-        # Стили для основной кнопки с увеличенным padding-right
         self.main_button.setStyleSheet("""
             QPushButton {
                 background-color: #FFFFFF;
@@ -32,7 +28,7 @@ class CustomButtonWidget(QWidget):
                 padding: 5px 10px;
                 font-size: 14px;
                 text-align: left;
-                padding-right: 50px;  /* Увеличен для большего пространства под "+" */
+                padding-right: 50px;
                 position: relative;
             }
             QPushButton:hover {
@@ -42,39 +38,70 @@ class CustomButtonWidget(QWidget):
         """)
         self.main_button.clicked.connect(lambda: self.clicked.emit(text))
 
-        # Кнопка "+" с увеличенной областью
         self.plus_button = QPushButton(self.main_button)
         self.plus_button.setIcon(QIcon(plus_icon_path))
         self.plus_button.setIconSize(plus_icon_size)
-        self.plus_button.setFixedSize(QSize(30, 30))  # Увеличенная область кнопки (больше иконки)
+        self.plus_button.setFixedSize(QSize(30, 30))
         self.plus_button.setStyleSheet("""
             QPushButton {
                 background-color: transparent;
                 border: none;
-                qproperty-iconSize: 24px;  /* Убедимся, что иконка не обрезается */
-                padding: 3px;  /* Небольшой внутренний отступ для иконки */
+                qproperty-iconSize: 24px;
+                padding: 3px;
             }
             QPushButton:hover {
                 background-color: #C7E8FF;
-                border-radius: 10px;  /* Скругление углов при наведении */
+                border-radius: 10px;
             }
         """)
-        # Позиционируем кнопку "+" в правой части
-        self.plus_button.move(298 - 30 - 10, (48 - 30) // 2)  # 30 - новый размер кнопки, 10 - отступ
+        self.plus_button.move(298 - 30 - 10, (48 - 30) // 2)
         self.plus_button.clicked.connect(lambda: self.plus_clicked.emit(text + "_add"))
 
-        # Добавляем основную кнопку в layout
         self.layout.addWidget(self.main_button)
-
-        # Устанавливаем размер main_button
         self.main_button.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Preferred)
 
-    # Убедимся, что размер остаётся фиксированным
     def resizeEvent(self, event):
         self.setFixedSize(298, 48)
-        # Перемещаем кнопку "+" при изменении размера
         self.plus_button.move(298 - 30 - 10, (48 - 30) // 2)
         super().resizeEvent(event)
+
+    def set_active(self, active):
+        if active:
+            self.main_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #C7E8FF;
+                    color: #636363;
+                    border-radius: 5px;
+                    border: 1px solid #ECECEC;
+                    padding: 5px 10px;
+                    font-size: 14px;
+                    text-align: left;
+                    padding-right: 50px;
+                    position: relative;
+                }
+                QPushButton:hover {
+                    background-color: #C7E8FF;
+                    color: #636363;
+                }
+            """)
+        else:
+            self.main_button.setStyleSheet("""
+                QPushButton {
+                    background-color: #FFFFFF;
+                    color: #636363;
+                    border-radius: 5px;
+                    border: 1px solid #ECECEC;
+                    padding: 5px 10px;
+                    font-size: 14px;
+                    text-align: left;
+                    padding-right: 50px;
+                    position: relative;
+                }
+                QPushButton:hover {
+                    background-color: #C7E8FF;
+                    color: #636363;
+                }
+            """)
 
 # Базовый диалог
 class BaseDialog(QDialog):
@@ -103,9 +130,7 @@ class SpeciesDialog(BaseDialog):
     def __init__(self, parent=None, species=None):
         super().__init__(parent, "Добавить вид")
         self.name = QLineEdit()
-
         self.layout.addRow("Название вида:", self.name)
-
         if species:
             self.name.setText(species.name)
 
@@ -125,31 +150,14 @@ class AnimalDialog(BaseDialog):
         self.sex = QComboBox()
         self.sex.addItems(["Male", "Female"])
 
-        # Загружаем виды и вольеры
         self.load_species()
         self.load_enclosures()
 
-        # Создаем кнопку для добавления вида
         species_layout = QHBoxLayout()
         species_layout.addWidget(self.species)
         add_species_button = QPushButton("Добавить вид")
         add_species_button.setObjectName("add_species_button")
         add_species_button.setIconSize(QSize(24, 24))
-        add_species_button.setStyleSheet("""
-            QPushButton {
-                background-color: #FFFFFF;
-                color: #636363;
-                border: 1px solid #ECECEC;
-                border-radius: 5px;
-                padding: 5px 10px;
-                font-size: 14px;
-                transition: background-color 0.3s ease;
-            }
-            QPushButton:hover {
-                background-color: #C7E8FF;
-                color: #636363;
-            }
-        """)
         add_species_button.clicked.connect(self.add_species)
         species_layout.addWidget(add_species_button)
 
@@ -191,13 +199,11 @@ class AnimalDialog(BaseDialog):
         if species_dialog.exec():
             with get_session() as session:
                 try:
-                    new_species = Species(
-                        name=species_dialog.name.text()
-                    )
+                    new_species = Species(name=species_dialog.name.text())
                     session.add(new_species)
                     session.commit()
                     QMessageBox.information(self, "Успех", "Новый вид успешно добавлен!")
-                    self.load_species()  # Обновляем список видов
+                    self.load_species()
                     self.species.setCurrentIndex(self.species.findData(new_species.id))
                 except Exception as e:
                     session.rollback()
@@ -308,24 +314,18 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Управление зоопарком")
         self.setGeometry(200, 200, 1024, 768)
-        self.setMinimumSize(1024, 768)  # Минимальный размер окна
+        self.setMinimumSize(1024, 768)
         self.setup_ui()
         self.apply_styles()
         self.show_animals()
-        self.current_table = self.animals_table  # Устанавливаем текущую таблицу
-        self.animals_table.show()  # Явно показываем таблицу с животными
+        self.current_table = self.animals_table
+        self.animals_table.show()
+        self.set_active_button("Животные")
 
     def apply_styles(self):
         self.setStyleSheet("""
-            QMainWindow {
-                background-color: #F5F6FF;
-                font-family: 'Regular', 'Inter';
-            }
-            
-            QLabel#logo {
-                padding: 10px;
-            }
-            
+            QMainWindow { background-color: #F5F6FF; font-family: 'Regular', 'Inter'; }
+            QLabel#logo { padding: 10px; }
             QLineEdit {
                 background-color: #FFFFFF;
                 border: 1px solid #ECECEC;
@@ -333,11 +333,7 @@ class MainWindow(QMainWindow):
                 padding: 10px 15px;
                 font-size: 14px;
             }
-
-            #save, #cancel {
-                text-align: center;
-            }
-            
+            #save, #cancel { text-align: center; }
             QPushButton {
                 background-color: #FFFFFF;
                 color: #636363;
@@ -345,18 +341,46 @@ class MainWindow(QMainWindow):
                 border: 1px solid #ECECEC;
                 padding: 5px 10px;
                 font-size: 14px;
-                transition: background-color 0.3s ease;
                 text-align: left;
             }
-            
-            QPushButton#edit_button, QPushButton#add_button {
-                padding-left: 10px;
-                padding-right: 50px; /* Увеличенный отступ справа для иконки */
+            QPushButton#report_button {
+                background-color: #FFFFFF;
+                color: #636363;
+                border-radius: 5px;
                 border: 1px solid #ECECEC;
-                text-align: left;
-                qproperty-iconSize: 24px; /* Устанавливаем размер иконки */
+                padding: 5px 10px;
+                font-size: 14px;
+                text-align: center;
             }
-
+            QPushButton#report_button:hover {
+                background-color: #C7E8FF;
+                color: #636363;
+                border: 1px solid #ECECEC;
+            }
+            QPushButton#delete_button {
+                background-color: #FFC1C1;
+                color: #636363;
+                border-radius: 5px;
+                border: 1px solid #ECECEC;
+                text-align: center;
+            }
+            QPushButton#delete_button:hover {
+                background-color: #FF9999;
+                color: #FFFFFF;
+                border: 1px solid #ECECEC;
+            }
+            QPushButton#add_button {
+                background-color: #5FFFD2;
+                color: #636363;
+                border-radius: 5px;
+                border: 1px solid #ECECEC;
+                text-align: center;
+            }
+            QPushButton#add_button:hover {
+                background-color: #00E6A8;
+                color: #FFFFFF;
+                border: 1px solid #ECECEC;
+            }
             QPushButton#add_species_button {
                 background-color: #FFFFFF;
                 color: #636363;
@@ -364,19 +388,15 @@ class MainWindow(QMainWindow):
                 border-radius: 5px;
                 padding: 5px 10px;
                 font-size: 14px;
-                transition: background-color 0.3s ease;
             }
-
-            QPushButton#add_species_button:hover {
-                background-color: #C7E8FF;
-                color: #636363;
+            QPushButton#add_species_button:hover { 
+                background-color: #C7E8FF; 
+                color: #636363; 
             }
-            
-            QPushButton:hover {
-                background-color: #C7E8FF;
-                color: #636363;
+            QPushButton:hover { 
+                background-color: #C7E8FF; 
+                color: #636363; 
             }
-            
             QTableWidget {
                 background-color: #FFFFFF;
                 border: 1px solid #ECECEC;
@@ -384,25 +404,38 @@ class MainWindow(QMainWindow):
                 font-size: 12px;
                 alternate-background-color: #FFFFFF;
             }
-            
-            QTableWidget::item {
-                padding: 5px;
+            QTableWidget::item { 
+                padding: 5px; 
             }
-            
             QHeaderView::section {
                 background-color: #C7E8FF;
                 color: #636363;
                 padding: 5px;
                 font-size: 12px;
             }
-            QHeaderView {
-                background-color: rgba(0,0,0,0);
+            QHeaderView { 
+                background-color: rgba(0,0,0,0); 
             }
-            
             QDialog {
                 background-color: #F5F6FF;
                 border: 1px solid #ECECEC;
                 border-radius: 10px;
+            }
+            QComboBox {
+                background-color: #FFFFFF;
+                border: 1px solid #ECECEC;
+                border-radius: 5px;
+                padding: 5px 10px;
+                font-size: 14px;
+                color: #636363;
+            }
+            QComboBox:hover {
+                background-color: #C7E8FF;
+            }
+            QComboBox QAbstractItemView {
+                color: #636363;
+                background-color: #FFFFFF;
+                selection-background-color: #C7E8FF;
             }
         """)
 
@@ -411,15 +444,13 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central_widget)
         main_layout = QHBoxLayout(central_widget)
 
-        # Левая панель с кнопками (1/3 ширины)
         left_panel = QWidget()
         left_layout = QVBoxLayout(left_panel)
 
-        # Логотип как SVG
         logo = QLabel()
         logo.setObjectName("logo")
-        logo_icon = QIcon("logo.svg")  # Укажите путь к вашему SVG-файлу
-        logo_pixmap = logo_icon.pixmap(QSize(120, 120))  # Установите желаемый размер
+        logo_icon = QIcon("logo.svg")
+        logo_pixmap = logo_icon.pixmap(QSize(120, 120))
         logo.setPixmap(logo_pixmap)
         left_layout.addWidget(logo)
 
@@ -434,51 +465,70 @@ class MainWindow(QMainWindow):
 
         for text, plus_icon_path, plus_icon_size in button_configs:
             button_widget = CustomButtonWidget(text, plus_icon_path, plus_icon_size)
-            button_widget.setFixedSize(298, 48)  # Явно устанавливаем размер
-            button_widget.clicked.connect(self.show_section)  # Показ таблицы при клике
-            button_widget.plus_clicked.connect(self.add_item_from_plus)  # Добавление при клике на "+"
+            button_widget.setFixedSize(298, 48)
+            button_widget.clicked.connect(self.show_section)
+            button_widget.plus_clicked.connect(self.add_item_from_plus)
             self.buttons.append(button_widget)
             left_layout.addWidget(button_widget)
 
+        # Добавляем дополнительный отступ перед элементами отчёта
+        left_layout.addSpacing(50)
+
+        # Добавляем контейнер для отчётов внизу левой панели
+        report_panel = QWidget()
+        report_layout = QVBoxLayout(report_panel)  # Вертикальный layout для выпадающего списка и кнопки
+        report_layout.setContentsMargins(0, 0, 0, 0)
+
+        self.report_combo = QComboBox()
+        self.report_combo.setFixedSize(298, 48)
+        self.report_combo.addItems([
+            "Отчёт по животным",
+            "Отчёт по сотрудникам",
+            "Отчёт по вольерам",
+            "Отчёт по кормлению",
+            "Отчёт по медицинским записям"
+        ])
+        self.report_combo.setCurrentText("Отчёт по животным")
+
+        self.report_button = QPushButton("Сгенерировать")
+        self.report_button.setObjectName("report_button")
+        self.report_button.setFixedSize(298, 48)
+        self.report_button.clicked.connect(self.generate_report)
+
+        report_layout.addWidget(self.report_combo)
+        report_layout.addWidget(self.report_button)
+        left_layout.addWidget(report_panel)
+
         left_layout.addStretch()
         main_layout.addWidget(left_panel)
-        main_layout.setStretch(0, 1)  # Левая панель — 1/3
+        main_layout.setStretch(0, 1)
 
-        # Правая панель с поиском и таблицей (2/3 ширины)
         right_panel = QWidget()
         right_layout = QVBoxLayout(right_panel)
-        right_layout.setContentsMargins(0, 0, 0, 0)  # Убираем лишние отступы
+        right_layout.setContentsMargins(0, 0, 0, 0)
 
-        # Поиск
         self.search_input = QLineEdit()
         self.search_input.setPlaceholderText("Поиск")
         right_layout.addWidget(self.search_input)
 
-        # Кнопки "Редактировать" и "Добавить" под полем поиска
         buttons_widget = QWidget()
         buttons_layout = QHBoxLayout(buttons_widget)
-        buttons_layout.setContentsMargins(0, 5, 0, 0)  # Небольшой отступ сверху для визуального разделения
+        buttons_layout.setContentsMargins(0, 5, 0, 0)
 
-        self.edit_button = QPushButton("Редактировать")
-        self.edit_button.setObjectName("edit_button")
-        self.edit_button.setFixedSize(298, 38)
-        self.edit_button.setIcon(QIcon("edit.svg"))
-        self.edit_button.setIconSize(QSize(24, 24))
-        self.edit_button.clicked.connect(self.edit_item)
+        self.delete_button = QPushButton("Удалить")
+        self.delete_button.setObjectName("delete_button")
+        self.delete_button.setFixedHeight(38)
+        self.delete_button.clicked.connect(self.delete_item)
 
         self.add_button = QPushButton("Добавить")
         self.add_button.setObjectName("add_button")
-        self.add_button.setFixedSize(298, 38)
-        self.add_button.setIcon(QIcon("add.svg"))
-        self.add_button.setIconSize(QSize(24, 24))
+        self.add_button.setFixedHeight(38)
         self.add_button.clicked.connect(self.add_item)
 
-        buttons_layout.addWidget(self.edit_button)
-        buttons_layout.addStretch()
+        buttons_layout.addWidget(self.delete_button)
         buttons_layout.addWidget(self.add_button)
         right_layout.addWidget(buttons_widget)
 
-        # Таблица
         self.animals_table = QTableWidget()
         self.employees_table = QTableWidget()
         self.enclosures_table = QTableWidget()
@@ -487,16 +537,59 @@ class MainWindow(QMainWindow):
         for table in [self.animals_table, self.employees_table, self.enclosures_table,
                       self.feeding_table, self.health_table]:
             table.setAlternatingRowColors(True)
+            table.setEditTriggers(QTableWidget.NoEditTriggers)
+            table.doubleClicked.connect(self.edit_item_on_double_click)
             right_layout.addWidget(table)
 
         self.search_input.textChanged.connect(self.search_items)
 
         main_layout.addWidget(right_panel)
-        main_layout.setStretch(1, 2)  # Правая панель — 2/3
+        main_layout.setStretch(1, 2)
 
-        # Скрываем все таблицы
         self.hide_all_tables()
         self.current_table = None
+
+    def generate_report(self):
+        report_type = self.report_combo.currentText()
+        if not report_type:  # Проверяем, выбрано ли что-то
+            QMessageBox.warning(self, "Ошибка", "Пожалуйста, выберите тип отчёта.")
+            return
+
+        with get_session() as session:
+            if report_type == "Отчёт по животным":
+                animals = session.query(Animal).all()
+                report = "Отчёт по животным:\n"
+                for animal in animals:
+                    report += (f"Имя: {animal.name}, Вид: {animal.fk_species.name if animal.fk_species else 'Не указан'}, "
+                               f"Вольер: {animal.fk_enclosure.name if animal.fk_enclosure else 'Не указан'}\n")
+            elif report_type == "Отчёт по сотрудникам":
+                employees = session.query(Employee).all()
+                report = "Отчёт по сотрудникам:\n"
+                for emp in employees:
+                    report += f"Имя: {emp.name}, Должность: {emp.position}, Телефон: {emp.phone}\n"
+            elif report_type == "Отчёт по вольерам":
+                enclosures = session.query(Enclosure).all()
+                report = "Отчёт по вольерам:\n"
+                for enc in enclosures:
+                    report += f"Название: {enc.name}, Размер: {enc.size} м², Местоположение: {enc.location}\n"
+            elif report_type == "Отчёт по кормлению":
+                feedings = session.query(AnimalFeed).all()
+                report = "Отчёт по кормлению:\n"
+                for feed in feedings:
+                    report += (f"Животное: {feed.fk_animal.name if feed.fk_animal else 'Не указано'}, "
+                               f"Корм: {feed.fk_feed.name if feed.fk_feed else 'Не указано'}, "
+                               f"Суточная норма: {feed.daily_amount} кг\n")
+            elif report_type == "Отчёт по медицинским записям":
+                health_records = session.query(HealthRecord).all()
+                report = "Отчёт по медицинским записям:\n"
+                for record in health_records:
+                    report += (f"Животное: {record.fk_animal.name if record.fk_animal else 'Не указано'}, "
+                               f"Дата осмотра: {record.checkup_date}, Заметки: {record.notes}\n")
+            else:
+                report = "Неизвестный тип отчёта."
+
+        # Выводим отчёт в диалоговом окне
+        QMessageBox.information(self, "Отчёт", report)
 
     def show_section(self, section):
         self.hide_all_tables()
@@ -516,158 +609,154 @@ class MainWindow(QMainWindow):
             self.current_table = self.health_table
             self.show_health()
         self.current_table.show()
+        self.set_active_button(section)
+
+    def set_active_button(self, active_section):
+        for button_widget in self.buttons:
+            button_widget.set_active(False)
+        for button_widget in self.buttons:
+            if button_widget.main_button.text() == active_section:
+                button_widget.set_active(True)
+                break
 
     def add_item_from_plus(self, action):
-        # Обработка клика по кнопке "+" для соответствующей таблицы
         if action.endswith("_add"):
-            section = action[:-4]  # Убираем "_add" для определения секции
+            section = action[:-4]
             if section == "Животные":
                 self.current_table = self.animals_table
                 dialog = AnimalDialog(self)
                 if dialog.exec():
                     with get_session() as session:
-                        try:
-                            new_animal = Animal(
-                                name=dialog.name.text(),
-                                species_id=dialog.species.currentData(),
-                                enclosure_id=dialog.enclosure.currentData(),
-                                date_of_birth=dialog.date_of_birth.date().toPython(),
-                                date_of_arrival=dialog.date_of_arrival.date().toPython(),
-                                sex=dialog.sex.currentText()
-                            )
-                            session.add(new_animal)
-                            session.commit()
-                            self.show_animals()
-                        except Exception as e:
-                            session.rollback()
-                            QMessageBox.critical(self, "Ошибка", f"Ошибка при добавлении: {str(e)}")
+                        new_animal = Animal(
+                            name=dialog.name.text(),
+                            species_id=dialog.species.currentData(),
+                            enclosure_id=dialog.enclosure.currentData(),
+                            date_of_birth=dialog.date_of_birth.date().toPython(),
+                            date_of_arrival=dialog.date_of_arrival.date().toPython(),
+                            sex=dialog.sex.currentText()
+                        )
+                        session.add(new_animal)
+                        session.commit()
+                        self.show_animals()
             elif section == "Сотрудники":
                 self.current_table = self.employees_table
                 dialog = EmployeeDialog(self)
                 if dialog.exec():
                     with get_session() as session:
-                        try:
-                            new_employee = Employee(
-                                name=dialog.name.text(),
-                                position=dialog.position.text(),
-                                phone=dialog.phone.text(),
-                                hire_date=dialog.hire_date.date().toPython()
-                            )
-                            session.add(new_employee)
-                            session.commit()
-                            self.show_employees()
-                        except Exception as e:
-                            session.rollback()
-                            QMessageBox.critical(self, "Ошибка", f"Ошибка при добавлении: {str(e)}")
+                        new_employee = Employee(
+                            name=dialog.name.text(),
+                            position=dialog.position.text(),
+                            phone=dialog.phone.text(),
+                            hire_date=dialog.hire_date.date().toPython()
+                        )
+                        session.add(new_employee)
+                        session.commit()
+                        self.show_employees()
             elif section == "Вольеры":
                 self.current_table = self.enclosures_table
                 dialog = EnclosureDialog(self)
                 if dialog.exec():
                     with get_session() as session:
-                        try:
-                            new_enclosure = Enclosure(
-                                name=dialog.name.text(),
-                                size=dialog.size.value(),
-                                location=dialog.location.text(),
-                                description=dialog.description.text()
-                            )
-                            session.add(new_enclosure)
-                            session.commit()
-                            self.show_enclosures()
-                        except Exception as e:
-                            session.rollback()
-                            QMessageBox.critical(self, "Ошибка", f"Ошибка при добавлении: {str(e)}")
+                        new_enclosure = Enclosure(
+                            name=dialog.name.text(),
+                            size=dialog.size.value(),
+                            location=dialog.location.text(),
+                            description=dialog.description.text()
+                        )
+                        session.add(new_enclosure)
+                        session.commit()
+                        self.show_enclosures()
             elif section == "Кормление":
                 self.current_table = self.feeding_table
                 dialog = AnimalFeedDialog(self)
                 if dialog.exec():
                     with get_session() as session:
-                        try:
-                            new_feeding = AnimalFeed(
-                                animal_id=dialog.animal.currentData(),
-                                feed_id=dialog.feed.currentData(),
-                                daily_amount=dialog.daily_amount.value()
-                            )
-                            session.add(new_feeding)
-                            session.commit()
-                            self.show_feeding()
-                        except Exception as e:
-                            session.rollback()
-                            QMessageBox.critical(self, "Ошибка", f"Ошибка при добавлении: {str(e)}")
+                        new_feeding = AnimalFeed(
+                            animal_id=dialog.animal.currentData(),
+                            feed_id=dialog.feed.currentData(),
+                            daily_amount=dialog.daily_amount.value()
+                        )
+                        session.add(new_feeding)
+                        session.commit()
+                        self.show_feeding()
             elif section == "Медицина":
                 self.current_table = self.health_table
                 dialog = HealthRecordDialog(self)
                 if dialog.exec():
                     with get_session() as session:
-                        try:
-                            new_health = HealthRecord(
-                                animal_id=dialog.animal.currentData(),
-                                checkup_date=dialog.checkup_date.date().toPython(),
-                                notes=dialog.notes.text()
-                            )
-                            session.add(new_health)
-                            session.commit()
-                            self.show_health()
-                        except Exception as e:
-                            session.rollback()
-                            QMessageBox.critical(self, "Ошибка", f"Ошибка при добавлении: {str(e)}")
+                        new_health = HealthRecord(
+                            animal_id=dialog.animal.currentData(),
+                            checkup_date=dialog.checkup_date.date().toPython(),
+                            notes=dialog.notes.text()
+                        )
+                        session.add(new_health)
+                        session.commit()
+                        self.show_health()
 
-    def load_data(self, model, table_widget, headers, data_function):
-        with get_session() as session:
-            self.current_items = session.query(model).all()  # Обновляем current_items
-            table_widget.setRowCount(len(self.current_items))
-            table_widget.setColumnCount(len(headers))
-            table_widget.setHorizontalHeaderLabels(headers)
-            for row, item in enumerate(self.current_items):
-                for col, value in enumerate(data_function(item)):
-                    table_widget.setItem(row, col, QTableWidgetItem(str(value)))
-            # Растягиваем столбцы на всю ширину
-            table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+    def load_data(self, session, model, table_widget, headers, data_function):
+        self.current_items = session.query(model).all()
+        table_widget.setRowCount(len(self.current_items))
+        table_widget.setColumnCount(len(headers))
+        table_widget.setHorizontalHeaderLabels(headers)
+        for row, item in enumerate(self.current_items):
+            for col, value in enumerate(data_function(item)):
+                table_widget.setItem(row, col, QTableWidgetItem(str(value)))
+        table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
     def show_animals(self):
-        headers = ["Имя", "Вид", "Вольер", "Дата рождения", "Дата прибытия", "Пол"]
-        def get_animal_data(animal):
-            return [
-                animal.name,
-                animal.fk_species.name if animal.fk_species else "",
-                animal.fk_enclosure.name if animal.fk_enclosure else "",
-                animal.date_of_birth,
-                animal.date_of_arrival,
-                animal.sex
-            ]
-        self.load_data(Animal, self.animals_table, headers, get_animal_data)
+        with get_session() as session:
+            headers = ["Имя", "Вид", "Вольер", "Дата рождения", "Дата прибытия", "Пол"]
+            def get_animal_data(animal):
+                return [
+                    animal.name,
+                    animal.fk_species.name if animal.fk_species else "",
+                    animal.fk_enclosure.name if animal.fk_enclosure else "",
+                    animal.date_of_birth,
+                    animal.date_of_arrival,
+                    animal.sex
+                ]
+            self.load_data(session, Animal, self.animals_table, headers, get_animal_data)
+            self.set_active_button("Животные")
 
     def show_employees(self):
-        headers = ["Имя", "Должность", "Телефон", "Дата найма"]
-        def get_employee_data(employee):
-            return [employee.name, employee.position, employee.phone, employee.hire_date]
-        self.load_data(Employee, self.employees_table, headers, get_employee_data)
+        with get_session() as session:
+            headers = ["Имя", "Должность", "Телефон", "Дата найма"]
+            def get_employee_data(employee):
+                return [employee.name, employee.position, employee.phone, employee.hire_date]
+            self.load_data(session, Employee, self.employees_table, headers, get_employee_data)
+            self.set_active_button("Сотрудники")
 
     def show_enclosures(self):
-        headers = ["Название", "Размер (m²)", "Местоположение", "Описание"]
-        def get_enclosure_data(enclosure):
-            return [enclosure.name, enclosure.size, enclosure.location, enclosure.description]
-        self.load_data(Enclosure, self.enclosures_table, headers, get_enclosure_data)
+        with get_session() as session:
+            headers = ["Название", "Размер (m²)", "Местоположение", "Описание"]
+            def get_enclosure_data(enclosure):
+                return [enclosure.name, enclosure.size, enclosure.location, enclosure.description]
+            self.load_data(session, Enclosure, self.enclosures_table, headers, get_enclosure_data)
+            self.set_active_button("Вольеры")
 
     def show_feeding(self):
-        headers = ["Животное", "Корм", "Суточная норма (кг)"]
-        def get_feeding_data(animal_feed):
-            return [
-                animal_feed.fk_animal.name if animal_feed.fk_animal else "",
-                animal_feed.fk_feed.name if animal_feed.fk_feed else "",
-                animal_feed.daily_amount
-            ]
-        self.load_data(AnimalFeed, self.feeding_table, headers, get_feeding_data)
+        with get_session() as session:
+            headers = ["Животное", "Корм", "Суточная норма (кг)"]
+            def get_feeding_data(animal_feed):
+                return [
+                    animal_feed.fk_animal.name if animal_feed.fk_animal else "",
+                    animal_feed.fk_feed.name if animal_feed.fk_feed else "",
+                    animal_feed.daily_amount
+                ]
+            self.load_data(session, AnimalFeed, self.feeding_table, headers, get_feeding_data)
+            self.set_active_button("Кормление")
 
     def show_health(self):
-        headers = ["Животное", "Дата осмотра", "Заметки"]
-        def get_health_data(health_record):
-            return [
-                health_record.fk_animal.name if health_record.fk_animal else "",
-                health_record.checkup_date,
-                health_record.notes
-            ]
-        self.load_data(HealthRecord, self.health_table, headers, get_health_data)
+        with get_session() as session:
+            headers = ["Животное", "Дата осмотра", "Заметки"]
+            def get_health_data(health_record):
+                return [
+                    health_record.fk_animal.name if health_record.fk_animal else "",
+                    health_record.checkup_date,
+                    health_record.notes
+                ]
+            self.load_data(session, HealthRecord, self.health_table, headers, get_health_data)
+            self.set_active_button("Медицина")
 
     def hide_all_tables(self):
         for table in [self.animals_table, self.employees_table, self.enclosures_table,
@@ -741,34 +830,24 @@ class MainWindow(QMainWindow):
                 session.rollback()
                 QMessageBox.critical(self, "Ошибка", f"Ошибка при добавлении: {str(e)}")
 
-    def edit_item(self):
+    def edit_item_on_double_click(self, index):
+        if not self.current_table:
+            return
+
+        current_row = index.row()
+        if current_row < 0:
+            return
+
         with get_session() as session:
             try:
-                current_row = self.current_table.currentRow()
-                if current_row < 0:
-                    QMessageBox.warning(self, "Ошибка", "Выберите строку для редактирования")
-                    return
-
-                # Обновляем current_items в зависимости от текущей таблицы
                 if self.current_table == self.animals_table:
                     self.current_items = session.query(Animal).all()
-                elif self.current_table == self.employees_table:
-                    self.current_items = session.query(Employee).all()
-                elif self.current_table == self.enclosures_table:
-                    self.current_items = session.query(Enclosure).all()
-                elif self.current_table == self.feeding_table:
-                    self.current_items = session.query(AnimalFeed).all()
-                elif self.current_table == self.health_table:
-                    self.current_items = session.query(HealthRecord).all()
-
-                if current_row >= len(self.current_items):
-                    QMessageBox.warning(self, "Ошибка", "Выбранная строка недоступна")
-                    return
-
-                item = self.current_items[current_row]
-                print(f"Editing item: {item}")  # Отладочный вывод
-
-                if self.current_table == self.animals_table:
+                    if current_row >= len(self.current_items):
+                        return
+                    item_id = self.current_items[current_row].id
+                    item = session.query(Animal).filter_by(id=item_id).first()
+                    if not item:
+                        return
                     dialog = AnimalDialog(self, item)
                     if dialog.exec():
                         item.name = dialog.name.text()
@@ -777,46 +856,156 @@ class MainWindow(QMainWindow):
                         item.date_of_birth = dialog.date_of_birth.date().toPython()
                         item.date_of_arrival = dialog.date_of_arrival.date().toPython()
                         item.sex = dialog.sex.currentText()
+                        session.merge(item)
                         session.commit()
                         self.show_animals()
                 elif self.current_table == self.employees_table:
+                    self.current_items = session.query(Employee).all()
+                    if current_row >= len(self.current_items):
+                        return
+                    item_id = self.current_items[current_row].id
+                    item = session.query(Employee).filter_by(id=item_id).first()
+                    if not item:
+                        return
                     dialog = EmployeeDialog(self, item)
                     if dialog.exec():
                         item.name = dialog.name.text()
                         item.position = dialog.position.text()
                         item.phone = dialog.phone.text()
                         item.hire_date = dialog.hire_date.date().toPython()
+                        session.merge(item)
                         session.commit()
                         self.show_employees()
                 elif self.current_table == self.enclosures_table:
+                    self.current_items = session.query(Enclosure).all()
+                    if current_row >= len(self.current_items):
+                        return
+                    item_id = self.current_items[current_row].id
+                    item = session.query(Enclosure).filter_by(id=item_id).first()
+                    if not item:
+                        return
                     dialog = EnclosureDialog(self, item)
                     if dialog.exec():
                         item.name = dialog.name.text()
                         item.size = dialog.size.value()
                         item.location = dialog.location.text()
                         item.description = dialog.description.text()
+                        session.merge(item)
                         session.commit()
                         self.show_enclosures()
                 elif self.current_table == self.feeding_table:
+                    self.current_items = session.query(AnimalFeed).all()
+                    if current_row >= len(self.current_items):
+                        return
+                    item_id = self.current_items[current_row].id
+                    item = session.query(AnimalFeed).filter_by(id=item_id).first()
+                    if not item:
+                        return
                     dialog = AnimalFeedDialog(self, item)
                     if dialog.exec():
                         item.animal_id = dialog.animal.currentData()
                         item.feed_id = dialog.feed.currentData()
                         item.daily_amount = dialog.daily_amount.value()
+                        session.merge(item)
                         session.commit()
                         self.show_feeding()
                 elif self.current_table == self.health_table:
+                    self.current_items = session.query(HealthRecord).all()
+                    if current_row >= len(self.current_items):
+                        return
+                    item_id = self.current_items[current_row].id
+                    item = session.query(HealthRecord).filter_by(id=item_id).first()
+                    if not item:
+                        return
                     dialog = HealthRecordDialog(self, item)
                     if dialog.exec():
                         item.animal_id = dialog.animal.currentData()
                         item.checkup_date = dialog.checkup_date.date().toPython()
                         item.notes = dialog.notes.text()
+                        session.merge(item)
                         session.commit()
                         self.show_health()
+                QMessageBox.information(self, "Успех", "Данные успешно отредактированы!")
             except Exception as e:
                 session.rollback()
                 QMessageBox.critical(self, "Ошибка", f"Ошибка при редактировании: {str(e)}")
-                print(f"Exception: {e}")  # Отладочный вывод ошибки
+
+    def delete_item(self):
+        if not self.current_table:
+            QMessageBox.warning(self, "Ошибка", "Выберите таблицу для удаления")
+            return
+
+        current_row = self.current_table.currentRow()
+        if current_row < 0:
+            QMessageBox.warning(self, "Ошибка", "Выберите строку для удаления")
+            return
+
+        reply = QMessageBox.question(self, "Подтверждение", "Вы уверены, что хотите удалить эту запись?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.No:
+            return
+
+        with get_session() as session:
+            try:
+                if self.current_table == self.animals_table:
+                    self.current_items = session.query(Animal).all()
+                    if current_row >= len(self.current_items):
+                        return
+                    item_id = self.current_items[current_row].id
+                    item = session.query(Animal).filter_by(id=item_id).first()
+                    if not item:
+                        return
+                    session.delete(item)
+                    session.commit()
+                    self.show_animals()
+                elif self.current_table == self.employees_table:
+                    self.current_items = session.query(Employee).all()
+                    if current_row >= len(self.current_items):
+                        return
+                    item_id = self.current_items[current_row].id
+                    item = session.query(Employee).filter_by(id=item_id).first()
+                    if not item:
+                        return
+                    session.delete(item)
+                    session.commit()
+                    self.show_employees()
+                elif self.current_table == self.enclosures_table:
+                    self.current_items = session.query(Enclosure).all()
+                    if current_row >= len(self.current_items):
+                        return
+                    item_id = self.current_items[current_row].id
+                    item = session.query(Enclosure).filter_by(id=item_id).first()
+                    if not item:
+                        return
+                    session.delete(item)
+                    session.commit()
+                    self.show_enclosures()
+                elif self.current_table == self.feeding_table:
+                    self.current_items = session.query(AnimalFeed).all()
+                    if current_row >= len(self.current_items):
+                        return
+                    item_id = self.current_items[current_row].id
+                    item = session.query(AnimalFeed).filter_by(id=item_id).first()
+                    if not item:
+                        return
+                    session.delete(item)
+                    session.commit()
+                    self.show_feeding()
+                elif self.current_table == self.health_table:
+                    self.current_items = session.query(HealthRecord).all()
+                    if current_row >= len(self.current_items):
+                        return
+                    item_id = self.current_items[current_row].id
+                    item = session.query(HealthRecord).filter_by(id=item_id).first()
+                    if not item:
+                        return
+                    session.delete(item)
+                    session.commit()
+                    self.show_health()
+                QMessageBox.information(self, "Успех", "Запись успешно удалена!")
+            except Exception as e:
+                session.rollback()
+                QMessageBox.critical(self, "Ошибка", f"Ошибка при удалении: {str(e)}")
 
     def search_items(self, text):
         if not text:
@@ -849,7 +1038,7 @@ class MainWindow(QMainWindow):
                         animal.date_of_arrival,
                         animal.sex
                     ]
-                self.current_items = filtered_items  # Обновляем current_items для поиска
+                self.current_items = filtered_items
                 self.animals_table.setRowCount(len(filtered_items))
                 self.animals_table.setColumnCount(len(headers))
                 self.animals_table.setHorizontalHeaderLabels(headers)

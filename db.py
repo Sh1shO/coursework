@@ -7,7 +7,6 @@ DATABASE_URL = 'postgresql://postgres:1234@localhost:5432/zoo_db'
 engine = create_engine(DATABASE_URL)
 Base = declarative_base()
 Session = sessionmaker(bind=engine)
-session = Session()
 
 # Виды животных
 class Species(Base):
@@ -104,4 +103,5 @@ class Offspring(Base):
     fk_father = relationship("Animal", foreign_keys=[father_id], back_populates="father_of")
 
 def get_session():
+    session = Session()
     return session
